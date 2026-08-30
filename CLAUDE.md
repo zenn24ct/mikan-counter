@@ -40,3 +40,13 @@
 - アノテーションのクラスは `green_fruit` / `colored_fruit` の 2 クラス（統合はできても分割はできないため）。
 - UI表記は日本語。コード内のコメント・変数名は英語でよい。
 - 最終的にはスマホアプリにするが、今回はその前段の PC 版。
+
+## デプロイ
+
+- 本体は **Streamlit Community Cloud**（`https://mikan-counter.streamlit.app` 予定、リポジトリは
+  `zenn24ct/mikan-counter` の private）。`main` に push すると自動で再デプロイされる。
+- **Vercel には置けない。** Streamlit は常駐サーバ＋WebSocket が必要で、torch だけで 500MB 超あり
+  サーバーレス関数のサイズ・実行時間の上限を超えるため。
+- `requirements.txt` は Linux では torch を `+cpu` に固定している（CUDA 版はクラウドに収まらない）。
+  `packages.txt` は Community Cloud 用の apt パッケージ。
+- Web版は無料枠のCPUなので遅い。数百MBの動画はローカル版で処理する前提。

@@ -21,7 +21,7 @@
 cd mikan-counter
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt      # テストも動かすなら requirements-dev.txt
 ```
 
 起動:
@@ -91,9 +91,37 @@ python scripts/train.py --data data/mikan.yaml --model yolo11n.pt --epochs 100 -
 学習後、`best.pt` が `models/best.pt` にコピーされます。
 アプリのサイドバーで「カスタム」を選び、`models/best.pt` を指定すると使えます。
 
+## Web版（常時アクセスできるURL）
+
+本体は **Streamlit Community Cloud** にホストします。Streamlit は常駐サーバと WebSocket を使うため、
+Vercel のようなサーバーレス環境では動きません（torch だけで 500MB 超あり、関数のサイズ上限も超えます）。
+
+デプロイ手順（初回のみ、ブラウザ操作）:
+
+1. https://share.streamlit.io を開き、GitHub アカウントでログインする
+2. このリポジトリは private なので、Streamlit に **private リポジトリへのアクセスを許可**する
+3. 「Create app」→ 「Deploy a public app from GitHub」を選ぶ
+   - Repository: `zenn24ct/mikan-counter`
+   - Branch: `main`
+   - Main file path: `app.py`
+   - Advanced settings → Python version: **3.12**
+   - App URL: `mikan-counter`（→ `https://mikan-counter.streamlit.app`）
+4. Deploy を押す。初回は torch と ultralytics のインストールで 5〜10 分ほどかかる
+
+以後は `main` に push するたびに自動で再デプロイされます。
+
+Web版の制約:
+
+- 無料枠の **CPU 推論**なので、ローカル（Apple Silicon の `mps`）より大幅に遅い。数十秒の短い動画で試すのが現実的
+- メモリも限られるため、数百MBの動画はローカル版で処理する
+- しばらくアクセスがないとスリープし、次回起動に数十秒かかる
+- `packages.txt` は Community Cloud 用の apt パッケージ（`libgl1` など。ultralytics が非 headless の
+  opencv-python を引き込むため必要）
+
 ## テスト
 
 ```bash
+pip install -r requirements-dev.txt
 python -m pytest tests/ -q
 ```
 
@@ -123,5 +151,6 @@ mikan-counter/
 
 - アップロード上限は `.streamlit/config.toml` で 2GB に引き上げています（Streamlit の既定は 200MB）。
 - 追跡（ByteTrack）には `lap` が必要です。`requirements.txt` に含めています。
-- `ultralytics` は依存として非 headless の `opencv-python` を引き込むため、インストール後に
+- `ultralytics` は依存として非 headless の `opencv-python` を引き込むため、ローカルではインストール後に
   `requirements.txt` 末尾のコマンドで headless 版へ戻してください。
+- Linux では torch を CPU 版（`+cpu`）に固定しています。CUDA 同梱版だとクラウドのディスクに収まりません。
