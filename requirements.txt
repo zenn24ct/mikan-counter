@@ -1,0 +1,13 @@
+# 動作確認済みのバージョン（Python 3.12 / macOS Apple Silicon）
+ultralytics==8.4.135
+streamlit==1.62.0
+opencv-python-headless==5.0.0.93
+numpy==2.5.2
+pandas==3.0.5
+pytest==9.1.1
+lap==0.5.13        # 追跡（ByteTrack）に必要
+
+# 注意: ultralytics は依存として opencv-python（非headless）を引き込みます。
+# Streamlit と競合するので、インストール後に headless 版へ戻してください:
+#   pip uninstall -y opencv-python
+#   pip install --force-reinstall --no-deps opencv-python-headless==5.0.0.93

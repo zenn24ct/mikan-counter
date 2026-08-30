@@ -1,0 +1,3 @@
+[server]
+# 動画は数百MBになり得るので既定の200MBから引き上げる
+maxUploadSize = 2048

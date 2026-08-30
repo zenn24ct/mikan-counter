@@ -1,0 +1,21 @@
+# data / models are not versioned
+data/*
+!data/.gitkeep
+!data/mikan.yaml.example
+models/*
+!models/.gitkeep
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# ultralytics
+runs/
+
+# macOS
+.DS_Store
+
+# ultralytics が作業ディレクトリに落とす重み
+*.pt

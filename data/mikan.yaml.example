@@ -1,0 +1,15 @@
+# YOLO形式データセットの定義テンプレート
+# data/mikan.yaml にコピーして、パスを実際の場所に書き換えて使う。
+#
+# 期待するディレクトリ構成:
+#   data/dataset/
+#     images/train/*.jpg   labels/train/*.txt
+#     images/val/*.jpg     labels/val/*.txt
+
+path: data/dataset   # データセットのルート（このファイルからの相対パス）
+train: images/train
+val: images/val
+
+names:
+  0: green_fruit     # 着色前の緑果（摘果期）
+  1: colored_fruit   # 着色済みの果実（収穫期）
