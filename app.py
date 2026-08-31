@@ -15,7 +15,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+APP_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(APP_DIR))
 
 from src import counting, detector, video  # noqa: E402
 
@@ -27,6 +28,11 @@ LABEL_TO_STAGE = {v: k for k, v in STAGE_LABELS.items()}
 
 BUILTIN_MODELS = ["yolo11n.pt", "yolov8n.pt"]
 CUSTOM_MODEL_LABEL = "カスタム（.pt のパスを指定）"
+
+
+def trained_models() -> dict[str, str]:
+    """models/ に置かれた学習済みの重み（表示名 -> 絶対パス）。あればこれを既定にする。"""
+    return {f"models/{p.name}（自前学習）": str(p) for p in sorted((APP_DIR / "models").glob("*.pt"))}
 PREVIEW_COUNT = 4
 
 st.set_page_config(page_title="みかん果実カウンタ", page_icon="🍊", layout="wide")
@@ -191,12 +197,17 @@ with st.sidebar:
     stage_label = st.radio("生育ステージ", list(STAGE_LABELS.values()), index=0)
     stage = LABEL_TO_STAGE[stage_label]
 
-    model_choice = st.selectbox("モデル", BUILTIN_MODELS + [CUSTOM_MODEL_LABEL], index=0)
+    local_models = trained_models()
+    model_choice = st.selectbox(
+        "モデル", list(local_models) + BUILTIN_MODELS + [CUSTOM_MODEL_LABEL], index=0
+    )
     if model_choice == CUSTOM_MODEL_LABEL:
         model_path = st.text_input("カスタムモデルのパス", value="models/best.pt")
     else:
-        model_path = model_choice
+        model_path = local_models.get(model_choice, model_choice)
     is_builtin_coco = model_choice in BUILTIN_MODELS
+    if model_choice in local_models:
+        st.caption("自前データで学習したモデルを使用中です。")
 
     if is_builtin_coco:
         class_mode = st.radio("検出クラス", ["orange(49) のみ", "全クラス"], index=0)
