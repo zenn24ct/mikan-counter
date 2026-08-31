@@ -98,15 +98,23 @@ Vercel のようなサーバーレス環境では動きません（torch だけ�
 
 デプロイ手順（初回のみ、ブラウザ操作）:
 
-1. https://share.streamlit.io を開き、GitHub アカウントでログインする
-2. このリポジトリは private なので、Streamlit に **private リポジトリへのアクセスを許可**する
-3. 「Create app」→ 「Deploy a public app from GitHub」を選ぶ
+1. https://share.streamlit.io にサインインする（GitHub / Google / メールのいずれか）
+2. GitHub アカウントを連携する
+   - 左上の「Workspaces ⚠」→「Connect GitHub account」→ GitHub で認証 →「Authorize streamlit」
+3. private リポジトリからデプロイするので、追加の許可を与える
+   - 左上の GitHub ユーザー名 →「Settings」→ 左の「Linked accounts」
+   - "Source control" の「Connect here →」→「Authorize streamlit」
+   - （リポジトリを public にする場合はこの手順は不要）
+4. 右上の「Create app」→ GitHub からデプロイを選ぶ
    - Repository: `zenn24ct/mikan-counter`
    - Branch: `main`
    - Main file path: `app.py`
    - Advanced settings → Python version: **3.12**
    - App URL: `mikan-counter`（→ `https://mikan-counter.streamlit.app`）
-4. Deploy を押す。初回は torch と ultralytics のインストールで 5〜10 分ほどかかる
+5. Deploy を押す。初回は torch と ultralytics のインストールで 5〜10 分ほどかかる
+
+サインインでエラーが出る場合は、https://share.streamlit.io/logout でサインアウトしてから、
+別のプロバイダ（Google など）で入り直すと通ることがある。
 
 以後は `main` に push するたびに自動で再デプロイされます。
 
