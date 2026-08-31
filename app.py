@@ -46,6 +46,7 @@ def process_video(
     every: int,
     orange_only: bool,
     track: bool,
+    imgsz: int,
 ) -> dict:
     """動画を逐次読みして検出・集計する。結果は session_state に入る辞書。"""
     info = video.probe(video_path)
@@ -69,6 +70,7 @@ def process_video(
             conf=conf,
             classes=classes,
             device=device,
+            imgsz=imgsz,
             track=track,
         )
         count = len(detections)
@@ -113,6 +115,7 @@ def process_video(
             "model": model_path,
             "conf": conf,
             "every": every,
+            "imgsz": imgsz,
             "orange_only": orange_only,
             "track": track,
             "device": device,
@@ -137,7 +140,8 @@ def render_result(result: dict) -> None:
 
     st.caption(
         f"生育ステージ: {STAGE_LABELS[settings['stage']]} / モデル: {settings['model']} / "
-        f"信頼度: {settings['conf']:.2f} / 間引き: {settings['every']} / デバイス: {settings['device']}"
+        f"信頼度: {settings['conf']:.2f} / 間引き: {settings['every']} / "
+        f"推論解像度: {settings['imgsz']} / デバイス: {settings['device']}"
     )
 
     if summary.unique_track_ids is not None:
@@ -203,6 +207,12 @@ with st.sidebar:
 
     conf = st.slider("信頼度しきい値", 0.05, 0.9, 0.25, 0.05)
     every = st.number_input("フレーム間引き（Nフレームごとに1枚）", min_value=1, max_value=120, value=5, step=1)
+    imgsz = st.selectbox(
+        "推論解像度",
+        [640, 960, 1280],
+        index=0 if is_builtin_coco else 1,
+        help="学習時と同じ解像度を選ぶ。models/best.pt は 960 で学習しています。",
+    )
     track = st.checkbox("追跡（ByteTrack）", value=False)
 
     if stage == detector.STAGE_GREEN and is_builtin_coco:
@@ -230,6 +240,7 @@ if st.button("検出を実行", type="primary", disabled=uploaded is None):
             every=int(every),
             orange_only=orange_only,
             track=track,
+            imgsz=int(imgsz),
         )
         st.session_state["result"]["video_name"] = uploaded.name
     except Exception as exc:  # モデル未取得・破損動画などをUIで見せる

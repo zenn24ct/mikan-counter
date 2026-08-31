@@ -105,6 +105,7 @@ def detect(
     conf: float = 0.25,
     classes: Sequence[int] | None = None,
     device: str | None = None,
+    imgsz: int | None = None,
     track: bool = False,
     tracker: str = DEFAULT_TRACKER,
 ) -> list[Detection]:
@@ -124,6 +125,9 @@ def detect(
         kwargs["classes"] = list(classes)
     if device:
         kwargs["device"] = device
+    if imgsz:
+        # must match the size the model was trained at, or small fruit is lost
+        kwargs["imgsz"] = int(imgsz)
 
     if track:
         results = model.track(frame, persist=True, tracker=tracker, **kwargs)
