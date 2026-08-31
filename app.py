@@ -11,6 +11,7 @@ import tempfile
 import time
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -34,6 +35,8 @@ def trained_models() -> dict[str, str]:
     """models/ に置かれた学習済みの重み（表示名 -> 絶対パス）。あればこれを既定にする。"""
     return {f"models/{p.name}（自前学習）": str(p) for p in sorted((APP_DIR / "models").glob("*.pt"))}
 PREVIEW_COUNT = 4
+SCRUB_MAX_FRAMES = 200      # cap so a long video cannot fill memory
+SCRUB_WIDTH = 480
 
 st.set_page_config(page_title="みかん果実カウンタ", page_icon="🍊", layout="wide")
 
@@ -66,6 +69,8 @@ def process_video(
     frame_counts: list[counting.FrameCount] = []
     track_ids: list[int] = []
     previews: list[dict] = []
+    scrub: list[dict] = []
+    scrub_stride = max(1, planned // SCRUB_MAX_FRAMES) if planned else 1
     started = time.time()
 
     for processed, (frame_index, frame) in enumerate(video.iter_frames(video_path, every), start=1):
@@ -84,10 +89,16 @@ def process_video(
         if track:
             track_ids.extend(d.track_id for d in detections if d.track_id is not None)
 
+        annotated = detector.draw_detections(frame, detections)
+        if (processed - 1) % scrub_stride == 0:
+            small = cv2.resize(annotated, (SCRUB_WIDTH, int(SCRUB_WIDTH * frame.shape[0] / frame.shape[1])))
+            ok, buf = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            if ok:
+                scrub.append({"frame_index": frame_index, "count": count, "jpeg": buf.tobytes()})
+
         # プレビューは上位 4 枚だけ保持する（全フレームは載せない）
         weakest = min((p["count"] for p in previews), default=-1)
         if len(previews) < PREVIEW_COUNT or count > weakest:
-            annotated = detector.draw_detections(frame, detections)
             previews.append(
                 {
                     "frame_index": frame_index,
@@ -116,6 +127,7 @@ def process_video(
         "summary": summary,
         "frame_counts": frame_counts,
         "previews": previews,
+        "scrub": scrub,
         "settings": {
             "stage": stage,
             "model": model_path,
@@ -171,6 +183,17 @@ def render_result(result: dict) -> None:
         chart_df.index.name = "フレーム番号"
         st.line_chart(chart_df)
 
+    scrub = result.get("scrub") or []
+    if scrub:
+        st.subheader("検出結果を1フレームずつ確認")
+        labels = [f"フレーム {s['frame_index']}（{s['count']}個）" for s in scrub]
+        pos = st.select_slider(
+            "フレーム", options=list(range(len(scrub))), value=0,
+            format_func=lambda i: labels[i], label_visibility="collapsed",
+        )
+        chosen = scrub[pos]
+        st.image(chosen["jpeg"], caption=labels[pos], width=480)
+
     previews = result["previews"]
     if previews:
         st.subheader("検出フレーム（検出数の多い順）")
@@ -198,9 +221,9 @@ with st.sidebar:
     stage = LABEL_TO_STAGE[stage_label]
 
     local_models = trained_models()
-    model_choice = st.selectbox(
-        "モデル", list(local_models) + BUILTIN_MODELS + [CUSTOM_MODEL_LABEL], index=0
-    )
+    # COCO models are only useful as a fallback: they cannot see green fruit.
+    choices = list(local_models) + ([] if local_models else BUILTIN_MODELS) + [CUSTOM_MODEL_LABEL]
+    model_choice = st.selectbox("モデル", choices, index=0)
     if model_choice == CUSTOM_MODEL_LABEL:
         model_path = st.text_input("カスタムモデルのパス", value="models/best.pt")
     else:
@@ -208,13 +231,7 @@ with st.sidebar:
     is_builtin_coco = model_choice in BUILTIN_MODELS
     if model_choice in local_models:
         st.caption("自前データで学習したモデルを使用中です。")
-
-    if is_builtin_coco:
-        class_mode = st.radio("検出クラス", ["orange(49) のみ", "全クラス"], index=0)
-        orange_only = class_mode == "orange(49) のみ"
-    else:
-        orange_only = False
-        st.caption("カスタムモデルでは全クラスを検出します。")
+    orange_only = is_builtin_coco  # COCO fallback: keep only the orange class
 
     conf = st.slider("信頼度しきい値", 0.05, 0.9, 0.25, 0.05)
     every = st.number_input("フレーム間引き（Nフレームごとに1枚）", min_value=1, max_value=120, value=5, step=1)
