@@ -1,9 +1,2 @@
-# Streamlit Community Cloud（Debian trixie）用の apt パッケージ。
-# ultralytics が依存で非 headless の opencv-python を引き込むため、
-# libGL.so.1 と libgthread-2.0.so.0 が必要になる。
-#
-# 注意: glib は trixie で "libglib2.0-0t64" に改名されている（time_t 64bit 移行）。
-# "libglib2.0-0" と書くと、イメージに残っている bullseye のリポジトリから
-# 古い 2.66 系が選ばれ、libffi7 / libpcre3 が無くて apt が失敗する。
 libgl1
 libglib2.0-0t64
